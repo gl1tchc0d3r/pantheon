@@ -20,7 +20,7 @@ pub enum InputResult {
 }
 
 pub struct Tui {
-    messages: Vec<Message>,
+    pub messages: Vec<Message>,
     scroll_offset: usize,
 }
 
@@ -54,6 +54,11 @@ impl Tui {
     pub fn scroll_down(&mut self, lines: usize) {
         let max_offset = self.messages.len().saturating_sub(1);
         self.scroll_offset = (self.scroll_offset + lines).min(max_offset);
+    }
+
+    #[allow(dead_code)]
+    pub fn scroll_offset(&self) -> usize {
+        self.scroll_offset
     }
 
     pub fn render<B: ratatui::backend::Backend>(
