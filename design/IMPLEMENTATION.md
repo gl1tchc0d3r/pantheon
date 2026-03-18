@@ -25,7 +25,7 @@ After completing a phase:
 
 **Version**: 0.1.0  
 **Feature Document**: `0.1.0_FEATURE_MVP.md`  
-**Status**: In Progress
+**Status**: Completed
 
 **Goal**: A working chat interface connected to an LLM that you can talk to.
 

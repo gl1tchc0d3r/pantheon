@@ -89,7 +89,7 @@ The `design/` directory also contains feature documents from a previous project 
 
 | Version | Feature | Feature Document | Status |
 |---------|---------|------------------|--------|
-| **0.1.0** | MVP: Chat + LLM | [0.1.0_FEATURE_MVP.md](design/0.1.0_FEATURE_MVP.md) | **In Progress** |
+| **0.1.0** | MVP: Chat + LLM | [0.1.0_FEATURE_MVP.md](design/0.1.0_FEATURE_MVP.md) | **Completed** |
 | 0.2.0 | History + Context | [0.2.0_FEATURE_CONTEXT.md](design/0.2.0_FEATURE_CONTEXT.md) | Not Started |
 | 0.3.0 | Ao's Identity | [0.3.0_FEATURE_IDENTITY.md](design/0.3.0_FEATURE_IDENTITY.md) | Not Started |
 | 0.4.0 | Basic Tools | [0.4.0_FEATURE_TOOLS.md](design/0.4.0_FEATURE_TOOLS.md) | Not Started |
