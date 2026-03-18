@@ -96,12 +96,18 @@ impl Tui {
                 .iter()
                 .skip(self.scroll_offset)
                 .map(|msg| {
-                    let prefix = if msg.role == "user" {
-                        "[You] "
-                    } else {
-                        "[Ao] "
+                    let (prefix, content) = match msg.role.as_str() {
+                        "user" => ("[You] ", msg.content.clone()),
+                        "ao" => ("[Ao] ", msg.content.clone()),
+                        "system" => ("[*]  ", msg.content.clone()),
+                        _ => ("[?]  ", msg.content.clone()),
                     };
-                    ListItem::new(format!("{}{}", prefix, msg.content))
+                    let text = format!("{}{}", prefix, content);
+                    if msg.role == "system" {
+                        ListItem::new(text.dim())
+                    } else {
+                        ListItem::new(text)
+                    }
                 })
                 .collect();
 
@@ -131,12 +137,6 @@ impl Default for Tui {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub fn print_help() {
-    println!("Available commands:");
-    println!("  /quit  - Exit the application");
-    println!("  /help  - Show this help message");
 }
 
 pub fn restore_terminal() {

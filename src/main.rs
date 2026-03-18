@@ -49,10 +49,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         break;
                                     }
                                     tui::InputResult::Command(ref cmd) if cmd == "help" => {
-                                        tui::restore_terminal();
-                                        tui::print_help();
-                                        println!("\nPress Enter to continue...");
-                                        let _ = std::io::stdin().read_line(&mut String::new());
+                                        tui.add_message("system", "Available commands:");
+                                        tui.add_message("system", "/quit  - Exit the application");
+                                        tui.add_message("system", "/help  - Show this help message");
                                     }
                                     tui::InputResult::Chat(text) => {
                                         tui.add_message("user", &text);
