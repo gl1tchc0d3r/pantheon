@@ -30,7 +30,8 @@ provider:
 EOF
 
 # Build and run
-cargo run
+cargo build --release
+./target/release/pantheon chat
 ```
 
 ---
@@ -100,18 +101,20 @@ The `design/` directory also contains feature documents from a previous project 
 | 0.9.0 | Scheduler | [0.9.0_FEATURE_SCHEDULER.md](design/0.9.0_FEATURE_SCHEDULER.md) | Not Started |
 | 1.0.0 | Refinement | [1.0.0_FEATURE_REFINE.md](design/1.0.0_FEATURE_REFINE.md) | Not Started |
 
-### Update Checklist
-
-When completing a phase:
-- [ ] Create feature document in `design/`
-- [ ] Update status in README.md to "Completed"
-- [ ] Update status in IMPLEMENTATION.md
-- [ ] Add completion date to feature document
-- [ ] Tag commit: `git tag -a vX.Y.Z -m "Complete X.Y.0: <feature>"`
 
 ---
 
-## Commands
+## CLI Commands
+
+The `ao` CLI provides the following commands:
+
+| Command | Description |
+|---------|-------------|
+| `ao chat` | Start the chat interface (default) |
+| `ao --version` | Show version |
+| `ao --help` | Show help |
+
+### In-Chat Commands
 
 | Command | Description |
 |---------|-------------|
