@@ -10,6 +10,7 @@ pub trait LlmProvider: Send + Sync {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum ProviderError {
     HttpError(reqwest::Error),
     ApiError(String),

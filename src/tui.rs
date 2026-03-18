@@ -46,6 +46,7 @@ impl Tui {
         }
     }
 
+    #[allow(dead_code)]
     pub fn messages(&self) -> &[Message] {
         &self.messages
     }
@@ -142,12 +143,21 @@ pub fn print_help() {
 
 pub fn restore_terminal() {
     crossterm::terminal::disable_raw_mode().ok();
-    crossterm::execute!(io::stdout(), crossterm::cursor::Show).ok();
+    crossterm::execute!(
+        io::stdout(),
+        crossterm::cursor::Show,
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
+    )
+    .ok();
 }
 
 pub fn init_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
     crossterm::terminal::enable_raw_mode()?;
-    crossterm::execute!(io::stdout(), crossterm::cursor::Hide)?;
+    crossterm::execute!(
+        io::stdout(),
+        crossterm::cursor::Hide,
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
+    )?;
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;
     Ok(terminal)

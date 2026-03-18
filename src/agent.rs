@@ -5,6 +5,7 @@ pub struct AgentLoop {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum AgentError {
     ProviderError(ProviderError),
 }
