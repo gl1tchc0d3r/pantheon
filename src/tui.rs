@@ -1,3 +1,11 @@
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
+    Terminal,
+};
+use std::io::{self, Stdout};
+
 #[derive(Debug, Clone)]
 pub struct Message {
     pub role: String,
@@ -11,15 +19,15 @@ pub enum InputResult {
 }
 
 pub struct Tui {
-    input_mode: bool,
     messages: Vec<Message>,
+    scroll_offset: usize,
 }
 
 impl Tui {
     pub fn new() -> Self {
         Self {
-            input_mode: true,
             messages: Vec::new(),
+            scroll_offset: 0,
         }
     }
 
@@ -41,6 +49,83 @@ impl Tui {
     pub fn messages(&self) -> &[Message] {
         &self.messages
     }
+
+    pub fn scroll_up(&mut self, lines: usize) {
+        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+    }
+
+    pub fn scroll_down(&mut self, lines: usize) {
+        let max_offset = self.messages.len().saturating_sub(1);
+        self.scroll_offset = (self.scroll_offset + lines).min(max_offset);
+    }
+
+    pub fn render<B: ratatui::backend::Backend>(
+        &self,
+        terminal: &mut Terminal<B>,
+        input_buffer: &str,
+        is_processing: bool,
+    ) -> io::Result<()> {
+        terminal.draw(|f| {
+            let size = f.size();
+
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Min(1),
+                    Constraint::Length(3),
+                    Constraint::Length(1),
+                ])
+                .split(size);
+
+            let header = Paragraph::new("Pantheon v0.1.0").block(
+                Block::default()
+                    .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
+                    .title(" Pantheon "),
+            );
+
+            f.render_widget(header, chunks[0]);
+
+            let message_items: Vec<ListItem> = self
+                .messages
+                .iter()
+                .skip(self.scroll_offset)
+                .map(|msg| {
+                    let prefix = if msg.role == "user" { "You: " } else { "Ao: " };
+                    ListItem::new(format!("{}{}", prefix, msg.content))
+                })
+                .collect();
+
+            let messages_list = List::new(message_items).block(
+                Block::default()
+                    .borders(Borders::LEFT | Borders::RIGHT)
+                    .title("Messages"),
+            );
+
+            f.render_widget(messages_list, chunks[1]);
+
+            let input_prompt = if is_processing { "> ... " } else { "> " };
+            let input_text = Paragraph::new(format!("{}{}", input_prompt, input_buffer))
+                .block(Block::default().borders(Borders::ALL).title(" Input "));
+
+            f.render_widget(input_text, chunks[2]);
+
+            let status_text = if is_processing {
+                "[Processing...]".to_string()
+            } else {
+                format!(
+                    "[Messages: {}] [Scroll: ↑↓] [/quit to exit]",
+                    self.messages.len() / 2
+                )
+            };
+
+            let status_bar = Paragraph::new(status_text)
+                .block(Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT));
+
+            f.render_widget(status_bar, chunks[3]);
+        })?;
+        Ok(())
+    }
 }
 
 impl Default for Tui {
@@ -53,4 +138,17 @@ pub fn print_help() {
     println!("Available commands:");
     println!("  /quit  - Exit the application");
     println!("  /help  - Show this help message");
+}
+
+pub fn restore_terminal() {
+    crossterm::terminal::disable_raw_mode().ok();
+    crossterm::execute!(io::stdout(), crossterm::cursor::Show).ok();
+}
+
+pub fn init_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
+    crossterm::terminal::enable_raw_mode()?;
+    crossterm::execute!(io::stdout(), crossterm::cursor::Hide)?;
+    let backend = CrosstermBackend::new(io::stdout());
+    let terminal = Terminal::new(backend)?;
+    Ok(terminal)
 }
