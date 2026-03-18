@@ -121,7 +121,7 @@ impl Tui {
             };
 
             let status_bar = Paragraph::new(status_text)
-                .block(Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT));
+                .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
             f.render_widget(status_bar, chunks[3]);
         })?;
