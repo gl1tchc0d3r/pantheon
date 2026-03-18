@@ -1,6 +1,7 @@
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
+    style::Stylize,
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Terminal,
 };
@@ -46,11 +47,6 @@ impl Tui {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn messages(&self) -> &[Message] {
-        &self.messages
-    }
-
     pub fn scroll_up(&mut self, lines: usize) {
         self.scroll_offset = self.scroll_offset.saturating_sub(lines);
     }
@@ -69,22 +65,30 @@ impl Tui {
         terminal.draw(|f| {
             let size = f.size();
 
+            let input_height = 3u16;
+            let status_height = 1u16;
+            let header_height = 1u16;
+
+            let main_height = size
+                .height
+                .saturating_sub(input_height + status_height + header_height + 4);
+
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Length(1),
-                    Constraint::Min(1),
-                    Constraint::Length(3),
-                    Constraint::Length(1),
+                    Constraint::Length(header_height),
+                    Constraint::Length(main_height),
+                    Constraint::Length(input_height),
+                    Constraint::Length(status_height),
                 ])
                 .split(size);
 
-            let header = Paragraph::new("Pantheon v0.1.0").block(
-                Block::default()
-                    .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
-                    .title(" Pantheon "),
-            );
-
+            let title = if is_processing {
+                "Pantheon v0.1.0 - Processing..."
+            } else {
+                "Pantheon v0.1.0"
+            };
+            let header = Paragraph::new(title).bold();
             f.render_widget(header, chunks[0]);
 
             let message_items: Vec<ListItem> = self
@@ -92,16 +96,17 @@ impl Tui {
                 .iter()
                 .skip(self.scroll_offset)
                 .map(|msg| {
-                    let prefix = if msg.role == "user" { "You: " } else { "Ao: " };
+                    let prefix = if msg.role == "user" {
+                        "[You] "
+                    } else {
+                        "[Ao] "
+                    };
                     ListItem::new(format!("{}{}", prefix, msg.content))
                 })
                 .collect();
 
-            let messages_list = List::new(message_items).block(
-                Block::default()
-                    .borders(Borders::LEFT | Borders::RIGHT)
-                    .title("Messages"),
-            );
+            let messages_list = List::new(message_items)
+                .block(Block::default().borders(Borders::ALL).title("Messages"));
 
             f.render_widget(messages_list, chunks[1]);
 
@@ -111,18 +116,11 @@ impl Tui {
 
             f.render_widget(input_text, chunks[2]);
 
-            let status_text = if is_processing {
-                "[Processing...]".to_string()
-            } else {
-                format!(
-                    "[Messages: {}] [Scroll: ↑↓] [/quit to exit]",
-                    self.messages.len() / 2
-                )
-            };
-
-            let status_bar = Paragraph::new(status_text)
-                .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
-
+            let status_text = format!(
+                "Messages: {} | ↑↓ Scroll | /quit Exit",
+                self.messages.len() / 2
+            );
+            let status_bar = Paragraph::new(status_text);
             f.render_widget(status_bar, chunks[3]);
         })?;
         Ok(())
