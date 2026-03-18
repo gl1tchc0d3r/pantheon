@@ -1,4 +1,5 @@
 use clap::Parser;
+use pantheon::Command;
 
 #[derive(Parser)]
 #[command(
@@ -8,7 +9,7 @@ use clap::Parser;
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Option<pantheon::Command>,
+    command: Option<Command>,
 }
 
 #[tokio::main]
@@ -17,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.command {
         Some(cmd) => cmd.execute().await?,
-        None => pantheon::Command::Chat.execute().await?,
+        None => Command::Chat.execute().await?,
     }
 
     Ok(())
