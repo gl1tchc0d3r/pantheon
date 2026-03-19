@@ -67,6 +67,8 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                             if !input.trim().is_empty() {
                                 match tui_instance.handle_input(&input) {
                                     crate::tui::InputResult::Quit => {
+                                        tui_instance.add_message("system", "Summarizing conversation for future reference...");
+                                        tui_instance.render(&mut terminal, &input_buffer, false)?;
                                         if let Err(e) = session_manager.end_session(&provider).await {
                                             tracing::warn!("Failed to summarize session: {}", e);
                                         }
@@ -132,6 +134,8 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                             tui_instance.scroll_down(3);
                         }
                         KeyCode::Esc => {
+                            tui_instance.add_message("system", "Summarizing conversation for future reference...");
+                            tui_instance.render(&mut terminal, &input_buffer, false)?;
                             if let Err(e) = session_manager.end_session(&provider).await {
                                 tracing::warn!("Failed to summarize session: {}", e);
                             }
