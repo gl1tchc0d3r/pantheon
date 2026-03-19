@@ -2,3 +2,9 @@ provider:
   api_key: ""  # Loaded from OPENROUTER_API_KEY env var
   model: "anthropic/claude-3-haiku"
   base_url: "https://openrouter.ai/api/v1"
+
+session:
+  max_history_tokens: 8000      # Token budget for previous session summaries at session start
+  db_path: ".ao/sessions.db"
+  auto_resume: true            # Resume last session on startup
+  summarize_on_close: true     # Generate summary when session ends
