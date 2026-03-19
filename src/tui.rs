@@ -1,4 +1,3 @@
-use crossterm::cursor;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -145,16 +144,6 @@ impl Tui {
             );
             let status_bar = Paragraph::new(status_text);
             f.render_widget(status_bar, chunks[3]);
-
-            if !is_processing {
-                let prompt_len = 2;
-                let cursor_x = (prompt_len + input_buffer.len()).min(size.width as usize - 2);
-                let _ = crossterm::execute!(
-                    io::stdout(),
-                    cursor::Show,
-                    cursor::MoveTo(chunks[2].x + cursor_x as u16 + 1, chunks[2].y + 1)
-                );
-            }
         })?;
         Ok(())
     }
