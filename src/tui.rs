@@ -2,7 +2,7 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::Stylize,
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Terminal,
 };
 use std::io::{self, Stdout};
@@ -21,14 +21,14 @@ pub enum InputResult {
 
 pub struct Tui {
     pub messages: Vec<Message>,
-    scroll_offset: usize,
+    list_state: ListState,
 }
 
 impl Tui {
     pub fn new() -> Self {
         Self {
             messages: Vec::new(),
-            scroll_offset: 0,
+            list_state: ListState::default(),
         }
     }
 
@@ -37,6 +37,7 @@ impl Tui {
             role: role.to_string(),
             content: content.to_string(),
         });
+        self.scroll_to_bottom();
     }
 
     pub fn handle_input(&self, input: &str) -> InputResult {
@@ -50,21 +51,29 @@ impl Tui {
     }
 
     pub fn scroll_up(&mut self, lines: usize) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        let i = self.list_state.offset().saturating_sub(lines);
+        self.list_state = ListState::default().with_offset(i);
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        let max_offset = self.messages.len().saturating_sub(1);
-        self.scroll_offset = (self.scroll_offset + lines).min(max_offset);
+        let max_offset = self.messages.len().saturating_sub(1).max(0);
+        let new_offset = (self.list_state.offset() + lines).min(max_offset);
+        self.list_state = ListState::default().with_offset(new_offset);
+    }
+
+    pub fn scroll_to_bottom(&mut self) {
+        if !self.messages.is_empty() {
+            self.list_state.select(Some(self.messages.len() - 1));
+        }
     }
 
     #[allow(dead_code)]
     pub fn scroll_offset(&self) -> usize {
-        self.scroll_offset
+        self.list_state.offset()
     }
 
     pub fn render<B: ratatui::backend::Backend>(
-        &self,
+        &mut self,
         terminal: &mut Terminal<B>,
         input_buffer: &str,
         is_processing: bool,
@@ -101,7 +110,6 @@ impl Tui {
             let message_items: Vec<ListItem> = self
                 .messages
                 .iter()
-                .skip(self.scroll_offset)
                 .map(|msg| {
                     let (prefix, content) = match msg.role.as_str() {
                         "user" => ("[You] ", msg.content.clone()),
@@ -119,9 +127,10 @@ impl Tui {
                 .collect();
 
             let messages_list = List::new(message_items)
-                .block(Block::default().borders(Borders::ALL).title("Messages"));
+                .block(Block::default().borders(Borders::ALL).title("Messages"))
+                .direction(ratatui::widgets::ListDirection::TopToBottom);
 
-            f.render_widget(messages_list, chunks[1]);
+            f.render_stateful_widget(messages_list, chunks[1], &mut self.list_state);
 
             let input_prompt = if is_processing { "> ... " } else { "> " };
             let input_text = Paragraph::new(format!("{}{}", input_prompt, input_buffer))
