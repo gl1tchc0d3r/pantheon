@@ -37,7 +37,6 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut tui_instance = Tui::new();
     let mut terminal = tui::init_terminal()?;
-    let mut input_buffer = String::new();
     let mut is_processing = false;
 
     if let Some(session) = session_manager.current_session() {
@@ -48,27 +47,33 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     loop {
-        tui_instance.render(&mut terminal, &input_buffer, is_processing)?;
+        tui_instance.render(&mut terminal, is_processing)?;
 
         if event::poll(std::time::Duration::from_millis(50))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Char(c) => {
-                            input_buffer.push(c);
+                            tui_instance.insert_char(c);
                         }
                         KeyCode::Backspace => {
-                            input_buffer.pop();
+                            tui_instance.delete_char_before_cursor();
+                        }
+                        KeyCode::Left => {
+                            tui_instance.move_cursor_left();
+                        }
+                        KeyCode::Right => {
+                            tui_instance.move_cursor_right();
                         }
                         KeyCode::Enter => {
-                            let input = input_buffer.clone();
-                            input_buffer.clear();
+                            let input = tui_instance.input_buffer.clone();
+                            tui_instance.reset_cursor();
 
                             if !input.trim().is_empty() {
                                 match tui_instance.handle_input(&input) {
                                     crate::tui::InputResult::Quit => {
                                         tui_instance.add_message("system", "Summarizing conversation for future reference...");
-                                        tui_instance.render(&mut terminal, &input_buffer, false)?;
+                                        tui_instance.render(&mut terminal, false)?;
                                         if let Err(e) = session_manager.end_session(&provider).await {
                                             tracing::warn!("Failed to summarize session: {}", e);
                                         }
@@ -103,7 +108,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                         }
 
                                         is_processing = true;
-                                        tui_instance.render(&mut terminal, &input_buffer, is_processing)?;
+                                        tui_instance.render(&mut terminal, is_processing)?;
 
                                         let history: Vec<&Message> = session_manager
                                             .current_session()
@@ -135,7 +140,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         KeyCode::Esc => {
                             tui_instance.add_message("system", "Summarizing conversation for future reference...");
-                            tui_instance.render(&mut terminal, &input_buffer, false)?;
+                            tui_instance.render(&mut terminal, false)?;
                             if let Err(e) = session_manager.end_session(&provider).await {
                                 tracing::warn!("Failed to summarize session: {}", e);
                             }
