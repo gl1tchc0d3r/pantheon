@@ -3,7 +3,6 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::Stylize,
-    text::Text,
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Terminal,
 };
@@ -119,13 +118,12 @@ impl Tui {
                         "system" => ("[*]  ", msg.content.clone()),
                         _ => ("[?]  ", msg.content.clone()),
                     };
-                    let text = Text::raw(format!("{}{}", prefix, content));
-                    let style = if msg.role == "system" {
-                        ratatui::style::Style::default().dim()
+                    let text = format!("{}{}", prefix, content);
+                    if msg.role == "system" {
+                        ListItem::new(text.dim())
                     } else {
-                        ratatui::style::Style::default()
-                    };
-                    ListItem::new(text.style(style))
+                        ListItem::new(text)
+                    }
                 })
                 .collect();
 
