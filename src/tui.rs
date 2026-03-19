@@ -3,9 +3,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::Stylize,
     text::Line,
-    widgets::{
-        Block, Borders, List, ListItem, ListState, Paragraph, Scrollbar, ScrollbarOrientation,
-    },
+    widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation},
     Terminal,
 };
 use std::io::{self, Stdout};
@@ -61,24 +59,8 @@ pub struct Tui {
     pub input_buffer: String,
     pub cursor_position: usize,
     scroll_offset: usize,
-    scrollbar_state: ScrollState,
+    content_height: usize,
     was_at_bottom: bool,
-}
-
-pub struct ScrollState {
-    pub position: usize,
-    pub viewport_height: usize,
-    pub content_height: usize,
-}
-
-impl Default for ScrollState {
-    fn default() -> Self {
-        Self {
-            position: 0,
-            viewport_height: 10,
-            content_height: 0,
-        }
-    }
 }
 
 impl Tui {
@@ -88,11 +70,7 @@ impl Tui {
             input_buffer: String::new(),
             cursor_position: 0,
             scroll_offset: 0,
-            scrollbar_state: ScrollState {
-                position: 0,
-                viewport_height: 10,
-                content_height: 0,
-            },
+            content_height: 0,
             was_at_bottom: true,
         }
     }
@@ -150,26 +128,16 @@ impl Tui {
 
     pub fn scroll_up(&mut self, lines: usize) {
         self.scroll_offset = self.scroll_offset.saturating_sub(lines);
-        self.scrollbar_state.position = self.scroll_offset;
         self.was_at_bottom = false;
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        let max_offset = self
-            .scrollbar_state
-            .content_height
-            .saturating_sub(self.scrollbar_state.viewport_height);
+        let max_offset = self.content_height.saturating_sub(1);
         self.scroll_offset = (self.scroll_offset + lines).min(max_offset);
-        self.scrollbar_state.position = self.scroll_offset;
     }
 
     fn scroll_to_bottom(&mut self) {
-        let max_offset = self
-            .scrollbar_state
-            .content_height
-            .saturating_sub(self.scrollbar_state.viewport_height);
-        self.scroll_offset = max_offset;
-        self.scrollbar_state.position = self.scroll_offset;
+        self.scroll_offset = self.content_height.saturating_sub(1);
         self.was_at_bottom = true;
     }
 
@@ -211,7 +179,7 @@ impl Tui {
             f.render_widget(header, chunks[0]);
 
             let available_width = (chunks[1].width.saturating_sub(2)) as usize;
-            let mut list_items: Vec<ListItem> = Vec::new();
+            let mut all_lines: Vec<Line> = Vec::new();
 
             for msg in &self.messages {
                 let (prefix, content) = match msg.role.as_str() {
@@ -225,34 +193,48 @@ impl Tui {
 
                 for line in wrapped_lines {
                     if msg.role == "system" {
-                        list_items.push(ListItem::new(line.dim()));
+                        all_lines.push(line.dim());
                     } else {
-                        list_items.push(ListItem::new(line));
+                        all_lines.push(line);
                     }
                 }
             }
 
-            self.scrollbar_state.content_height = list_items.len();
-            self.scrollbar_state.viewport_height = chunks[1].height as usize;
-            let max_offset = self
-                .scrollbar_state
-                .content_height
-                .saturating_sub(self.scrollbar_state.viewport_height);
-            self.scroll_offset = self.scroll_offset.min(max_offset);
-            self.scrollbar_state.position = self.scroll_offset;
+            self.content_height = all_lines.len().max(1);
 
-            let mut list_state = ListState::default().with_offset(self.scroll_offset);
+            if self.scroll_offset > self.content_height.saturating_sub(1) {
+                self.scroll_offset = self.content_height.saturating_sub(1);
+            }
 
-            let messages_list = List::new(list_items)
-                .block(Block::default().borders(Borders::ALL).title("Messages"));
+            let messages_paragraph =
+                Paragraph::new(all_lines).scroll((self.scroll_offset as u16, 0));
 
-            f.render_stateful_widget(messages_list, chunks[1], &mut list_state);
+            let block = Block::default().borders(Borders::ALL).title("Messages");
+
+            f.render_widget(messages_paragraph.block(block), chunks[1]);
 
             let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
-            let mut ratatui_scrollbar_state =
-                ratatui::widgets::ScrollbarState::new(self.scrollbar_state.content_height)
-                    .position(self.scrollbar_state.position);
-            f.render_stateful_widget(scrollbar, chunks[1], &mut ratatui_scrollbar_state);
+            let mut scrollbar_state = ratatui::widgets::ScrollbarState::new(self.content_height)
+                .position(self.scroll_offset);
+            f.render_stateful_widget(scrollbar, chunks[1], &mut scrollbar_state);
+
+            let input_display = if self.input_buffer.is_empty() {
+                String::new()
+            } else {
+                self.input_buffer.clone()
+            };
+
+            let input_text = Paragraph::new(input_display.as_str())
+                .block(Block::default().borders(Borders::ALL).title(" Input "));
+
+            f.render_widget(input_text, chunks[2]);
+
+            if !is_processing {
+                f.set_cursor(
+                    chunks[2].x + 1 + self.cursor_position as u16,
+                    chunks[2].y + 1,
+                );
+            }
 
             let status_text = format!(
                 "Messages: {} | ↑↓ Scroll | /quit Exit",
