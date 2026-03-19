@@ -3,7 +3,9 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::Stylize,
     text::Line,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{
+        Block, Borders, List, ListItem, ListState, Paragraph, Scrollbar, ScrollbarOrientation,
+    },
     Terminal,
 };
 use std::io::{self, Stdout};
@@ -58,9 +60,25 @@ pub struct Tui {
     pub messages: Vec<Message>,
     pub input_buffer: String,
     pub cursor_position: usize,
-    list_state: ListState,
-    total_lines: usize,
+    scroll_offset: usize,
+    scrollbar_state: ScrollState,
     was_at_bottom: bool,
+}
+
+pub struct ScrollState {
+    pub position: usize,
+    pub viewport_height: usize,
+    pub content_height: usize,
+}
+
+impl Default for ScrollState {
+    fn default() -> Self {
+        Self {
+            position: 0,
+            viewport_height: 10,
+            content_height: 0,
+        }
+    }
 }
 
 impl Tui {
@@ -69,8 +87,12 @@ impl Tui {
             messages: Vec::new(),
             input_buffer: String::new(),
             cursor_position: 0,
-            list_state: ListState::default(),
-            total_lines: 0,
+            scroll_offset: 0,
+            scrollbar_state: ScrollState {
+                position: 0,
+                viewport_height: 10,
+                content_height: 0,
+            },
             was_at_bottom: true,
         }
     }
@@ -127,28 +149,32 @@ impl Tui {
     }
 
     pub fn scroll_up(&mut self, lines: usize) {
-        let offset = self.list_state.offset().saturating_sub(lines);
-        self.list_state = ListState::default().with_offset(offset);
+        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        self.scrollbar_state.position = self.scroll_offset;
         self.was_at_bottom = false;
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        let current_offset = self.list_state.offset();
-        let max_offset = self.total_lines.saturating_sub(1);
-        let new_offset = (current_offset + lines).min(max_offset);
-        self.list_state = ListState::default().with_offset(new_offset);
+        let max_offset = self
+            .scrollbar_state
+            .content_height
+            .saturating_sub(self.scrollbar_state.viewport_height);
+        self.scroll_offset = (self.scroll_offset + lines).min(max_offset);
+        self.scrollbar_state.position = self.scroll_offset;
     }
 
     fn scroll_to_bottom(&mut self) {
-        if self.total_lines > 0 {
-            let offset = self.total_lines.saturating_sub(1);
-            self.list_state = ListState::default().with_offset(offset);
-        }
+        let max_offset = self
+            .scrollbar_state
+            .content_height
+            .saturating_sub(self.scrollbar_state.viewport_height);
+        self.scroll_offset = max_offset;
+        self.scrollbar_state.position = self.scroll_offset;
     }
 
     #[allow(dead_code)]
     pub fn scroll_offset(&self) -> usize {
-        self.list_state.offset()
+        self.scroll_offset
     }
 
     pub fn render<B: ratatui::backend::Backend>(
@@ -163,15 +189,11 @@ impl Tui {
             let status_height = 1u16;
             let header_height = 1u16;
 
-            let main_height = size
-                .height
-                .saturating_sub(input_height + status_height + header_height + 4);
-
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Length(header_height),
-                    Constraint::Length(main_height),
+                    Constraint::Min(1),
                     Constraint::Length(input_height),
                     Constraint::Length(status_height),
                 ])
@@ -185,7 +207,7 @@ impl Tui {
             let header = Paragraph::new(title).bold();
             f.render_widget(header, chunks[0]);
 
-            let available_width = (chunks[1].width.saturating_sub(4)) as usize;
+            let available_width = (chunks[1].width.saturating_sub(2)) as usize;
             let mut list_items: Vec<ListItem> = Vec::new();
 
             for msg in &self.messages {
@@ -207,31 +229,27 @@ impl Tui {
                 }
             }
 
-            self.total_lines = list_items.len();
-            self.list_state = ListState::default().with_offset(self.list_state.offset());
+            self.scrollbar_state.content_height = list_items.len();
+            self.scrollbar_state.viewport_height = chunks[1].height as usize;
+            let max_offset = self
+                .scrollbar_state
+                .content_height
+                .saturating_sub(self.scrollbar_state.viewport_height);
+            self.scroll_offset = self.scroll_offset.min(max_offset);
+            self.scrollbar_state.position = self.scroll_offset;
+
+            let mut list_state = ListState::default().with_offset(self.scroll_offset);
 
             let messages_list = List::new(list_items)
                 .block(Block::default().borders(Borders::ALL).title("Messages"));
 
-            f.render_stateful_widget(messages_list, chunks[1], &mut self.list_state);
+            f.render_stateful_widget(messages_list, chunks[1], &mut list_state);
 
-            let input_display = if self.input_buffer.is_empty() {
-                String::new()
-            } else {
-                self.input_buffer.clone()
-            };
-
-            let input_text = Paragraph::new(input_display.as_str())
-                .block(Block::default().borders(Borders::ALL).title(" Input "));
-
-            f.render_widget(input_text, chunks[2]);
-
-            if !is_processing {
-                f.set_cursor(
-                    chunks[2].x + 1 + self.cursor_position as u16,
-                    chunks[2].y + 1,
-                );
-            }
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
+            let mut ratatui_scrollbar_state =
+                ratatui::widgets::ScrollbarState::new(self.scrollbar_state.content_height)
+                    .position(self.scrollbar_state.position);
+            f.render_stateful_widget(scrollbar, chunks[1], &mut ratatui_scrollbar_state);
 
             let status_text = format!(
                 "Messages: {} | ↑↓ Scroll | /quit Exit",
