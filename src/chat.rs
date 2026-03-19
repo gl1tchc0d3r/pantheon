@@ -100,12 +100,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                             tui_instance.add_message("system", &format!("Created: {}", session.created_at.format("%Y-%m-%d %H:%M:%S")));
                                             if let Some(ref summary) = session.summary {
                                                 tui_instance.add_message("system", "─── Current Summary ───");
-                                                let summary_preview = if summary.len() > 200 {
-                                                    format!("{}...", &summary[..200])
-                                                } else {
-                                                    summary.clone()
-                                                };
-                                                tui_instance.add_message("system", &summary_preview);
+                                                tui_instance.add_message("system", summary);
                                             } else {
                                                 tui_instance.add_message("system", "─── Summary: Not yet generated (will be created on quit) ───");
                                             }
