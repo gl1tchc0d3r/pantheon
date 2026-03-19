@@ -98,13 +98,15 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                             tui_instance.add_message("system", &format!("Messages: {}", session.messages.len()));
                                             tui_instance.add_message("system", &format!("Tokens: ~{}", session.estimate_tokens()));
                                             tui_instance.add_message("system", &format!("Created: {}", session.created_at.format("%Y-%m-%d %H:%M:%S")));
-                                            if let Some(ref summary) = session.summary {
-                                                tui_instance.add_message("system", "─── Current Summary ───");
-                                                tui_instance.add_message("system", summary);
-                                            } else {
-                                                tui_instance.add_message("system", "─── Summary: Not yet generated (will be created on quit) ───");
-                                            }
                                             tui_instance.add_message("system", "════════════════════");
+                                            tui_instance.add_message("system", &format!("═══ Previous Session Summaries ({}) ═══", previous_summaries.len()));
+                                            for (i, summary) in previous_summaries.iter().enumerate() {
+                                                tui_instance.add_message("system", &format!("─── Session {} ({}) ───", i + 1, summary.session_date.format("%Y-%m-%d")));
+                                                tui_instance.add_message("system", &summary.summary);
+                                            }
+                                            if previous_summaries.is_empty() {
+                                                tui_instance.add_message("system", "No previous session summaries available.");
+                                            }
                                         } else {
                                             tui_instance.add_message("system", "No active session.");
                                         }
