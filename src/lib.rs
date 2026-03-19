@@ -11,6 +11,7 @@ pub use chat::run;
 pub use cli::Command;
 pub use config::Config;
 pub use provider::{LlmProvider, ProviderError, OpenRouterProvider};
+pub use session::{Message, SessionSummary};
 pub use tui::Tui;
 
 #[cfg(test)]
@@ -18,7 +19,9 @@ mod tests {
     use crate::tui::{InputResult, Tui};
     use crate::agent::AgentLoop;
     use crate::provider::{LlmProvider, ProviderError};
+    use crate::session::{Message, SessionSummary};
     use async_trait::async_trait;
+    use chrono::Utc;
     use std::sync::{Arc, Mutex};
 
     #[test]
@@ -120,7 +123,9 @@ mod tests {
         let mock = MockProvider::new(vec!["Hello from agent!".to_string()]);
         let agent = AgentLoop::new(Box::new(mock.clone()));
 
-        let result = agent.run("Hi").await.unwrap();
+        let history: Vec<&Message> = vec![];
+        let summaries: Vec<SessionSummary> = vec![];
+        let result = agent.run("Hi", &history, &summaries).await.unwrap();
         assert_eq!(result, "Hello from agent!");
 
         let calls = mock.get_calls();
@@ -133,7 +138,9 @@ mod tests {
         let mock = MockProvider::new(vec!["Response".to_string()]);
         let agent = AgentLoop::new(Box::new(mock.clone()));
 
-        let _ = agent.run("Test message").await;
+        let history: Vec<&Message> = vec![];
+        let summaries: Vec<SessionSummary> = vec![];
+        let _ = agent.run("Test message", &history, &summaries).await;
 
         let calls = mock.get_calls();
         assert!(calls[0].contains("User:"));
@@ -142,11 +149,51 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_agent_with_history() {
+        let mock = MockProvider::new(vec!["Response".to_string()]);
+        let agent = AgentLoop::new(Box::new(mock.clone()));
+
+        let msg1 = Message::new("s1".to_string(), "user", "Hello");
+        let msg2 = Message::new("s1".to_string(), "ao", "Hi there!");
+        let history = vec![&msg1, &msg2];
+        let summaries: Vec<SessionSummary> = vec![];
+
+        let _ = agent.run("How are you?", &history, &summaries).await;
+
+        let calls = mock.get_calls();
+        assert!(calls[0].contains("=== Current Session History ==="));
+        assert!(calls[0].contains("User: Hello"));
+        assert!(calls[0].contains("Ao: Hi there!"));
+    }
+
+    #[tokio::test]
+    async fn test_agent_with_summaries() {
+        let mock = MockProvider::new(vec!["Response".to_string()]);
+        let agent = AgentLoop::new(Box::new(mock.clone()));
+
+        let history: Vec<&Message> = vec![];
+        let summaries = vec![SessionSummary {
+            session_id: "s1".to_string(),
+            session_date: Utc::now(),
+            summary: "Discussed Rust programming".to_string(),
+            token_count: 100,
+        }];
+
+        let _ = agent.run("Continue our discussion", &history, &summaries).await;
+
+        let calls = mock.get_calls();
+        assert!(calls[0].contains("=== Previous Sessions Summary ==="));
+        assert!(calls[0].contains("Discussed Rust programming"));
+    }
+
+    #[tokio::test]
     async fn test_agent_error_handling() {
         let mock = MockProvider::new(vec![]);
         let agent = AgentLoop::new(Box::new(mock));
 
-        let result = agent.run("Test").await;
+        let history: Vec<&Message> = vec![];
+        let summaries: Vec<SessionSummary> = vec![];
+        let result = agent.run("Test", &history, &summaries).await;
         assert!(result.is_err());
     }
 }

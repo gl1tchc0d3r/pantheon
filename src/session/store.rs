@@ -292,11 +292,10 @@ impl SessionStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
-    use tempfile::tempdir;
+    use tempfile::TempDir;
 
-    async fn create_test_store() -> (SessionStore, Arc<tempdir::TempDir>) {
-        let dir = Arc::new(tempdir().unwrap());
+    async fn create_test_store() -> (SessionStore, TempDir) {
+        let dir = TempDir::new().unwrap();
         let db_path = dir.path().join("test.db");
         let store = SessionStore::new(&db_path).await.unwrap();
         (store, dir)
@@ -306,7 +305,7 @@ mod tests {
     async fn test_create_and_load_session() {
         let (store, _dir) = create_test_store().await;
 
-        let mut session = Session::new("test-session-1".to_string(), 8000);
+        let session = Session::new("test-session-1".to_string(), 8000);
         store.create_session(&session).await.unwrap();
 
         let loaded = store.get_session("test-session-1").await.unwrap();
@@ -350,7 +349,7 @@ mod tests {
         let (store, _dir) = create_test_store().await;
 
         for i in 0..5 {
-            let mut session = Session::new(format!("test-session-{}", i), 8000);
+            let session = Session::new(format!("test-session-{}", i), 8000);
             store.create_session(&session).await.unwrap();
             store.save_summary(&session.id, &format!("Summary {}", i), 100).await.unwrap();
         }
