@@ -1,7 +1,7 @@
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    style::Stylize,
+    layout::{Alignment, Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
     text::Line,
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation},
     Terminal,
@@ -171,32 +171,30 @@ impl Tui {
                 .split(size);
 
             let title = if is_processing {
-                "Pantheon v0.2.0 - Processing..."
+                " Pantheon v0.2.0 - Processing... "
             } else {
-                "Pantheon v0.2.0"
+                " Pantheon v0.2.0 "
             };
-            let header = Paragraph::new(title).bold();
+            let header = Paragraph::new(title)
+                .style(Style::default().fg(Color::White).bg(Color::DarkGray))
+                .alignment(Alignment::Center);
             f.render_widget(header, chunks[0]);
 
             let available_width = (chunks[1].width.saturating_sub(2)) as usize;
             let mut all_lines: Vec<Line> = Vec::new();
 
             for msg in &self.messages {
-                let (prefix, content) = match msg.role.as_str() {
-                    "user" => ("[You] ", msg.content.clone()),
-                    "ao" => ("[Ao] ", msg.content.clone()),
-                    "system" => ("[*]  ", msg.content.clone()),
-                    _ => ("[?]  ", msg.content.clone()),
+                let (prefix, content, color) = match msg.role.as_str() {
+                    "user" => ("[You] ", msg.content.clone(), Color::Cyan),
+                    "ao" => ("[Ao] ", msg.content.clone(), Color::Green),
+                    "system" => ("[*]  ", msg.content.clone(), Color::Yellow),
+                    _ => ("[?]  ", msg.content.clone(), Color::Red),
                 };
                 let text = format!("{}{}", prefix, content);
                 let wrapped_lines = wrap_text(&text, available_width);
 
                 for line in wrapped_lines {
-                    if msg.role == "system" {
-                        all_lines.push(line.dim());
-                    } else {
-                        all_lines.push(line);
-                    }
+                    all_lines.push(line.style(Style::default().fg(color)));
                 }
             }
 
@@ -206,14 +204,25 @@ impl Tui {
                 self.scroll_offset = self.content_height.saturating_sub(1);
             }
 
-            let messages_paragraph =
-                Paragraph::new(all_lines).scroll((self.scroll_offset as u16, 0));
+            let messages_paragraph = Paragraph::new(all_lines)
+                .scroll((self.scroll_offset as u16, 0))
+                .style(Style::default().bg(Color::Rgb(30, 30, 35)));
 
-            let block = Block::default().borders(Borders::ALL).title("Messages");
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::DarkGray))
+                .title(" Messages ")
+                .title_style(
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                )
+                .style(Style::default().bg(Color::Rgb(30, 30, 35)));
 
             f.render_widget(messages_paragraph.block(block), chunks[1]);
 
-            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .style(Style::default().fg(Color::DarkGray));
             let mut scrollbar_state = ratatui::widgets::ScrollbarState::new(self.content_height)
                 .position(self.scroll_offset);
             f.render_stateful_widget(scrollbar, chunks[1], &mut scrollbar_state);
@@ -225,7 +234,19 @@ impl Tui {
             };
 
             let input_text = Paragraph::new(input_display.as_str())
-                .block(Block::default().borders(Borders::ALL).title(" Input "));
+                .style(Style::default().fg(Color::White))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Blue))
+                        .title(" Input ")
+                        .title_style(
+                            Style::default()
+                                .fg(Color::Blue)
+                                .add_modifier(Modifier::BOLD),
+                        )
+                        .style(Style::default().bg(Color::Rgb(20, 20, 25))),
+                );
 
             f.render_widget(input_text, chunks[2]);
 
@@ -237,10 +258,12 @@ impl Tui {
             }
 
             let status_text = format!(
-                "Messages: {} | ↑↓ Scroll | /quit Exit",
-                self.messages.len() / 2
+                " Messages: {} | ↑↓ Scroll | /help | /quit ",
+                self.messages.len() / 2,
             );
-            let status_bar = Paragraph::new(status_text);
+            let status_bar = Paragraph::new(status_text)
+                .style(Style::default().fg(Color::White).bg(Color::DarkGray))
+                .alignment(Alignment::Center);
             f.render_widget(status_bar, chunks[3]);
         })?;
         Ok(())
