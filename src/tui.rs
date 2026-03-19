@@ -97,7 +97,8 @@ impl Tui {
 
     pub fn scroll_to_bottom(&mut self) {
         if !self.messages.is_empty() {
-            self.list_state.select(Some(self.messages.len() - 1));
+            let target_offset = self.messages.len().saturating_sub(1);
+            self.list_state = ListState::default().with_offset(target_offset);
         }
     }
 
