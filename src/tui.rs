@@ -7,6 +7,40 @@ use ratatui::{
 };
 use std::io::{self, Stdout};
 
+fn wrap_text(text: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current_line = String::new();
+    let prefix_len = if text.starts_with("[You] ") {
+        6
+    } else if text.starts_with("[Ao] ") {
+        5
+    } else if text.starts_with("[*]  ") {
+        4
+    } else {
+        0
+    };
+    let available_width = width.saturating_sub(prefix_len + 1);
+
+    for word in text.split_whitespace() {
+        if current_line.is_empty() {
+            current_line.push_str(word);
+        } else if current_line.len() + 1 + word.len() <= available_width.max(20) {
+            current_line.push(' ');
+            current_line.push_str(word);
+        } else {
+            lines.push(current_line);
+            current_line = word.to_string();
+        }
+    }
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
 #[derive(Debug, Clone)]
 pub struct Message {
     pub role: String,
@@ -107,24 +141,27 @@ impl Tui {
             let header = Paragraph::new(title).bold();
             f.render_widget(header, chunks[0]);
 
-            let message_items: Vec<ListItem> = self
-                .messages
-                .iter()
-                .map(|msg| {
-                    let (prefix, content) = match msg.role.as_str() {
-                        "user" => ("[You] ", msg.content.clone()),
-                        "ao" => ("[Ao] ", msg.content.clone()),
-                        "system" => ("[*]  ", msg.content.clone()),
-                        _ => ("[?]  ", msg.content.clone()),
-                    };
-                    let text = format!("{}{}", prefix, content);
+            let available_width = (chunks[1].width.saturating_sub(4)) as usize;
+            let mut message_items: Vec<ListItem> = Vec::new();
+
+            for msg in &self.messages {
+                let (prefix, content) = match msg.role.as_str() {
+                    "user" => ("[You] ", msg.content.clone()),
+                    "ao" => ("[Ao] ", msg.content.clone()),
+                    "system" => ("[*]  ", msg.content.clone()),
+                    _ => ("[?]  ", msg.content.clone()),
+                };
+                let text = format!("{}{}", prefix, content);
+                let wrapped_lines = wrap_text(&text, available_width);
+
+                for line in wrapped_lines {
                     if msg.role == "system" {
-                        ListItem::new(text.dim())
+                        message_items.push(ListItem::new(line.dim()));
                     } else {
-                        ListItem::new(text)
+                        message_items.push(ListItem::new(line));
                     }
-                })
-                .collect();
+                }
+            }
 
             let messages_list = List::new(message_items)
                 .block(Block::default().borders(Borders::ALL).title("Messages"))
