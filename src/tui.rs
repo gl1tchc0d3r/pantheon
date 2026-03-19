@@ -43,6 +43,8 @@ impl Tui {
         match input.trim() {
             "/quit" => InputResult::Quit,
             "/help" => InputResult::Command("help".to_string()),
+            "/clear" => InputResult::Command("clear".to_string()),
+            "/status" => InputResult::Command("status".to_string()),
             _ => InputResult::Chat(input.to_string()),
         }
     }
@@ -89,9 +91,9 @@ impl Tui {
                 .split(size);
 
             let title = if is_processing {
-                "Pantheon v0.1.0 - Processing..."
+                "Pantheon v0.2.0 - Processing..."
             } else {
-                "Pantheon v0.1.0"
+                "Pantheon v0.2.0"
             };
             let header = Paragraph::new(title).bold();
             f.render_widget(header, chunks[0]);
