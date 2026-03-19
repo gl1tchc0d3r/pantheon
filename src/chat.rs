@@ -93,10 +93,25 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                     crate::tui::InputResult::Command(ref cmd) if cmd == "status" => {
                                         if let Some(session) = session_manager.current_session() {
-                                            tui_instance.add_message("system", &format!("Session ID: {}", &session.id[..8]));
+                                            tui_instance.add_message("system", "═══ Session Status ═══");
+                                            tui_instance.add_message("system", &format!("ID: {}", &session.id[..8]));
                                             tui_instance.add_message("system", &format!("Messages: {}", session.messages.len()));
                                             tui_instance.add_message("system", &format!("Tokens: ~{}", session.estimate_tokens()));
                                             tui_instance.add_message("system", &format!("Created: {}", session.created_at.format("%Y-%m-%d %H:%M:%S")));
+                                            if let Some(ref summary) = session.summary {
+                                                tui_instance.add_message("system", "─── Current Summary ───");
+                                                let summary_preview = if summary.len() > 200 {
+                                                    format!("{}...", &summary[..200])
+                                                } else {
+                                                    summary.clone()
+                                                };
+                                                tui_instance.add_message("system", &summary_preview);
+                                            } else {
+                                                tui_instance.add_message("system", "─── Summary: Not yet generated (will be created on quit) ───");
+                                            }
+                                            tui_instance.add_message("system", "════════════════════");
+                                        } else {
+                                            tui_instance.add_message("system", "No active session.");
                                         }
                                     }
                                     crate::tui::InputResult::Chat(text) => {
