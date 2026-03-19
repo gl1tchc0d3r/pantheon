@@ -170,6 +170,7 @@ impl Tui {
             .saturating_sub(self.scrollbar_state.viewport_height);
         self.scroll_offset = max_offset;
         self.scrollbar_state.position = self.scroll_offset;
+        self.was_at_bottom = true;
     }
 
     #[allow(dead_code)]
@@ -185,15 +186,17 @@ impl Tui {
         terminal.draw(|f| {
             let size = f.size();
 
+            let header_height = 1u16;
             let input_height = 3u16;
             let status_height = 1u16;
-            let header_height = 1u16;
+            let fixed_height = header_height + input_height + status_height + 4;
+            let messages_height = size.height.saturating_sub(fixed_height);
 
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Length(header_height),
-                    Constraint::Min(1),
+                    Constraint::Length(messages_height),
                     Constraint::Length(input_height),
                     Constraint::Length(status_height),
                 ])
