@@ -1,4 +1,4 @@
-use super::session::{Message, Session, SessionSummary};
+use super::session::{Session, SessionSummary};
 use super::store::{SessionError, SessionStore};
 use crate::provider::LlmProvider;
 use std::path::PathBuf;

@@ -1,3 +1,4 @@
+use crate::session::SessionConfig;
 use serde::Deserialize;
 use std::env;
 use std::fmt;
@@ -7,6 +8,8 @@ use std::path::PathBuf;
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub provider: ProviderConfig,
+    #[serde(default)]
+    pub session: SessionConfig,
 }
 
 #[derive(Debug, Deserialize)]

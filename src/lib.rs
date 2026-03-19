@@ -3,6 +3,7 @@ pub mod chat;
 pub mod cli;
 pub mod config;
 pub mod provider;
+pub mod session;
 pub mod tui;
 
 pub use agent::AgentLoop;
