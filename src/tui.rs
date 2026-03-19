@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::Stylize,
     text::Line,
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Terminal,
 };
 use std::io::{self, Stdout};
@@ -58,7 +58,9 @@ pub struct Tui {
     pub messages: Vec<Message>,
     pub input_buffer: String,
     pub cursor_position: usize,
-    scroll_offset: usize,
+    list_state: ListState,
+    total_lines: usize,
+    was_at_bottom: bool,
 }
 
 impl Tui {
@@ -67,7 +69,9 @@ impl Tui {
             messages: Vec::new(),
             input_buffer: String::new(),
             cursor_position: 0,
-            scroll_offset: 0,
+            list_state: ListState::default(),
+            total_lines: 0,
+            was_at_bottom: true,
         }
     }
 
@@ -76,6 +80,9 @@ impl Tui {
             role: role.to_string(),
             content: content.to_string(),
         });
+        if self.was_at_bottom {
+            self.scroll_to_bottom();
+        }
     }
 
     pub fn handle_input(&self, input: &str) -> InputResult {
@@ -86,10 +93,6 @@ impl Tui {
             "/status" => InputResult::Command("status".to_string()),
             _ => InputResult::Chat(input.to_string()),
         }
-    }
-
-    pub fn char_at_cursor(&self) -> Option<char> {
-        self.input_buffer.chars().nth(self.cursor_position)
     }
 
     pub fn insert_char(&mut self, c: char) {
@@ -124,17 +127,28 @@ impl Tui {
     }
 
     pub fn scroll_up(&mut self, lines: usize) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        let offset = self.list_state.offset().saturating_sub(lines);
+        self.list_state = ListState::default().with_offset(offset);
+        self.was_at_bottom = false;
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        self.scroll_offset =
-            (self.scroll_offset + lines).min(self.messages.len().saturating_sub(1));
+        let current_offset = self.list_state.offset();
+        let max_offset = self.total_lines.saturating_sub(1);
+        let new_offset = (current_offset + lines).min(max_offset);
+        self.list_state = ListState::default().with_offset(new_offset);
+    }
+
+    fn scroll_to_bottom(&mut self) {
+        if self.total_lines > 0 {
+            let offset = self.total_lines.saturating_sub(1);
+            self.list_state = ListState::default().with_offset(offset);
+        }
     }
 
     #[allow(dead_code)]
     pub fn scroll_offset(&self) -> usize {
-        self.scroll_offset
+        self.list_state.offset()
     }
 
     pub fn render<B: ratatui::backend::Backend>(
@@ -193,10 +207,13 @@ impl Tui {
                 }
             }
 
+            self.total_lines = list_items.len();
+            self.list_state = ListState::default().with_offset(self.list_state.offset());
+
             let messages_list = List::new(list_items)
                 .block(Block::default().borders(Borders::ALL).title("Messages"));
 
-            f.render_widget(messages_list, chunks[1]);
+            f.render_stateful_widget(messages_list, chunks[1], &mut self.list_state);
 
             let input_display = if self.input_buffer.is_empty() {
                 String::new()
