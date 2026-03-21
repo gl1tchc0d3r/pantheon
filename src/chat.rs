@@ -11,24 +11,17 @@ use std::path::Path;
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::load()?;
 
-    tracing::info!("Soul path: {}", config.identity.soul_path);
-    tracing::info!("Identity path: {}", config.identity.identity_path);
-
     let soul = Soul::load_or_create(Path::new(&config.identity.soul_path))
         .unwrap_or_else(|e| {
             tracing::warn!("Failed to load soul: {}, using default", e);
             Soul::default_soul()
         });
 
-    tracing::info!("Soul loaded, path: {}", soul.path().display());
-
     let identity = Identity::load_or_create(Path::new(&config.identity.identity_path))
         .unwrap_or_else(|e| {
             tracing::warn!("Failed to load identity: {}, using default", e);
             Identity::default_identity()
         });
-
-    tracing::info!("Identity loaded, path: {}", identity.path().display());
 
     let provider = OpenRouterProvider::new(
         config.provider.api_key,
