@@ -1,8 +1,11 @@
+use crate::identity::{Identity, Soul};
 use crate::provider::{LlmProvider, ProviderError};
 use crate::session::{capitalize, Message, SessionSummary};
 
 pub struct AgentLoop {
     provider: Box<dyn LlmProvider>,
+    soul: Option<Soul>,
+    identity: Option<Identity>,
 }
 
 #[derive(Debug)]
@@ -19,7 +22,21 @@ impl From<ProviderError> for AgentError {
 
 impl AgentLoop {
     pub fn new(provider: Box<dyn LlmProvider>) -> Self {
-        Self { provider }
+        Self {
+            provider,
+            soul: None,
+            identity: None,
+        }
+    }
+
+    pub fn with_soul(mut self, soul: Soul) -> Self {
+        self.soul = Some(soul);
+        self
+    }
+
+    pub fn with_identity(mut self, identity: Identity) -> Self {
+        self.identity = Some(identity);
+        self
     }
 
     pub async fn run(
@@ -40,6 +57,18 @@ impl AgentLoop {
         previous_summaries: &[SessionSummary],
     ) -> String {
         let mut prompt = String::new();
+
+        if let Some(soul) = &self.soul {
+            prompt.push_str("=== Ao's Soul ===\n");
+            prompt.push_str(soul.content());
+            prompt.push_str("=== End Soul ===\n\n");
+        }
+
+        if let Some(identity) = &self.identity {
+            prompt.push_str("=== Ao's Identity ===\n");
+            prompt.push_str(identity.content());
+            prompt.push_str("=== End Identity ===\n\n");
+        }
 
         if !previous_summaries.is_empty() {
             prompt.push_str("=== Previous Sessions Summary ===\n");
@@ -70,6 +99,7 @@ impl AgentLoop {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::identity::{Identity, Soul};
     use crate::provider::{LlmProvider, ProviderError};
     use async_trait::async_trait;
     use chrono::Utc;
@@ -122,6 +152,48 @@ mod tests {
 
         assert!(prompt.contains("User: Test input"));
         assert!(prompt.contains("Ao:"));
+    }
+
+    #[test]
+    fn test_build_prompt_with_soul_and_identity() {
+        let mock = MockProvider::new(vec!["Response".to_string()]);
+        let soul = Soul::default_soul();
+        let identity = Identity::default_identity();
+        let agent = AgentLoop::new(Box::new(mock))
+            .with_soul(soul)
+            .with_identity(identity);
+
+        let history: Vec<&Message> = vec![];
+        let summaries: Vec<SessionSummary> = vec![];
+
+        let prompt = agent.build_prompt("Test input", &history, &summaries);
+
+        assert!(prompt.contains("=== Ao's Soul ==="));
+        assert!(prompt.contains("=== Ao's Identity ==="));
+        assert!(prompt.contains("curiosity"));
+        assert!(prompt.contains("help the user"));
+    }
+
+    #[test]
+    fn test_soul_before_identity_before_history() {
+        let mock = MockProvider::new(vec!["Response".to_string()]);
+        let soul = Soul::default_soul();
+        let identity = Identity::default_identity();
+        let agent = AgentLoop::new(Box::new(mock))
+            .with_soul(soul)
+            .with_identity(identity);
+
+        let msg = Message::new("s1".to_string(), "user", "Hello");
+        let history = vec![&msg];
+
+        let prompt = agent.build_prompt("Test", &history, &[]);
+
+        let soul_pos = prompt.find("=== Ao's Soul ===").unwrap();
+        let identity_pos = prompt.find("=== Ao's Identity ===").unwrap();
+        let history_pos = prompt.find("=== Current Session History ===").unwrap();
+
+        assert!(soul_pos < identity_pos, "Soul should come before Identity");
+        assert!(identity_pos < history_pos, "Identity should come before History");
     }
 
     #[derive(Clone)]
