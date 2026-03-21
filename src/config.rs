@@ -10,6 +10,24 @@ pub struct Config {
     pub provider: ProviderConfig,
     #[serde(default)]
     pub session: SessionConfig,
+    #[serde(default)]
+    pub identity: IdentityConfig,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct IdentityConfig {
+    #[serde(default = "default_soul_path")]
+    pub soul_path: String,
+    #[serde(default = "default_identity_path")]
+    pub identity_path: String,
+}
+
+fn default_soul_path() -> String {
+    ".ao/SOUL.md".to_string()
+}
+
+fn default_identity_path() -> String {
+    ".ao/IDENTITY.md".to_string()
 }
 
 #[derive(Debug, Deserialize)]
