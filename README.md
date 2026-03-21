@@ -8,7 +8,8 @@ A personal AI assistant framework built in Rust with persistent conversation his
 
 **Current Version**: 0.2.0  
 **Status**: Active Development  
-**Current Phase**: Context and History - Session Management
+**Current Phase**: Session Management + Context (Completed)  
+**Next Phase**: 0.3.0 - Ao's Identity
 
 ---
 
@@ -85,7 +86,7 @@ Use [FEATURE_TEMPLATE.md](design/FEATURE_TEMPLATE.md) for creating new feature d
 |---------|---------|------------------|--------|
 | **0.1.0** | MVP: Chat + LLM | [0.1.0_FEATURE_MVP.md](design/0.1.0_FEATURE_MVP.md) | Completed |
 | **0.2.0** | History + Context | [0.2.0_FEATURE_CONTEXT.md](design/0.2.0_FEATURE_CONTEXT.md) | **Completed** |
-| 0.3.0 | Ao's Identity | [0.3.0_FEATURE_IDENTITY.md](design/0.3.0_FEATURE_IDENTITY.md) | Not Started |
+| 0.3.0 | Ao's Identity | [0.3.0_FEATURE_IDENTITY.md](design/0.3.0_FEATURE_IDENTITY.md) | **Planned** |
 | 0.4.0 | Basic Tools | [0.4.0_FEATURE_TOOLS.md](design/0.4.0_FEATURE_TOOLS.md) | Not Started |
 | 0.5.0 | Memory System | [0.5.0_FEATURE_MEMORY.md](design/0.5.0_FEATURE_MEMORY.md) | Not Started |
 | 0.6.0 | Library System | [0.6.0_FEATURE_LIBRARY.md](design/0.6.0_FEATURE_LIBRARY.md) | Not Started |
