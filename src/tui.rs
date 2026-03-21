@@ -91,6 +91,8 @@ impl Tui {
             "/help" => InputResult::Command("help".to_string()),
             "/clear" => InputResult::Command("clear".to_string()),
             "/status" => InputResult::Command("status".to_string()),
+            "/soul" => InputResult::Command("soul".to_string()),
+            "/identity" => InputResult::Command("identity".to_string()),
             _ => InputResult::Chat(input.to_string()),
         }
     }

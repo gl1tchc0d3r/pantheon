@@ -11,6 +11,7 @@ pub enum IdentityError {
     NotFound(PathBuf),
 }
 
+#[derive(Clone)]
 pub struct Soul {
     content: String,
     path: std::path::PathBuf,
@@ -58,6 +59,7 @@ impl Soul {
     }
 }
 
+#[derive(Clone)]
 pub struct Identity {
     content: String,
     path: std::path::PathBuf,

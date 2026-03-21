@@ -1,13 +1,27 @@
 use crate::config::Config;
 use crate::provider::{LlmProvider, OpenRouterProvider};
 use crate::agent::AgentLoop;
+use crate::identity::{Identity, Soul};
 use crate::tui::Tui;
 use crate::tui;
 use crate::session::{SessionManager, Message};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use std::path::Path;
 
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::load()?;
+
+    let soul = Soul::load_or_create(Path::new(&config.identity.soul_path))
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to load soul: {}, using default", e);
+            Soul::default_soul()
+        });
+
+    let identity = Identity::load_or_create(Path::new(&config.identity.identity_path))
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to load identity: {}, using default", e);
+            Identity::default_identity()
+        });
 
     let provider = OpenRouterProvider::new(
         config.provider.api_key,
@@ -16,7 +30,9 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let provider_ref: Box<dyn LlmProvider> = Box::new(provider.clone());
-    let agent = AgentLoop::new(provider_ref);
+    let agent = AgentLoop::new(provider_ref)
+        .with_soul(soul.clone())
+        .with_identity(identity.clone());
     let session_config = config.session.clone();
     let auto_resume = session_config.auto_resume;
     let mut session_manager = SessionManager::new(session_config).await?;
@@ -82,10 +98,12 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                     crate::tui::InputResult::Command(ref cmd) if cmd == "help" => {
                                         tui_instance.add_message("system", "Available commands:");
-                                        tui_instance.add_message("system", "/quit   - Exit the application");
-                                        tui_instance.add_message("system", "/help   - Show this help message");
-                                        tui_instance.add_message("system", "/clear  - Clear conversation history");
-                                        tui_instance.add_message("system", "/status - Show current session info");
+                                        tui_instance.add_message("system", "/quit      - Exit the application");
+                                        tui_instance.add_message("system", "/help      - Show this help message");
+                                        tui_instance.add_message("system", "/clear     - Clear conversation history");
+                                        tui_instance.add_message("system", "/status    - Show current session info");
+                                        tui_instance.add_message("system", "/soul      - View Ao's core soul");
+                                        tui_instance.add_message("system", "/identity  - View Ao's current identity");
                                     }
                                     crate::tui::InputResult::Command(ref cmd) if cmd == "clear" => {
                                         session_manager.clear_history();
@@ -110,6 +128,22 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                                         } else {
                                             tui_instance.add_message("system", "No active session.");
                                         }
+                                    }
+                                    crate::tui::InputResult::Command(ref cmd) if cmd == "soul" => {
+                                        tui_instance.add_message("system", "═══ Ao's Soul ═══");
+                                        for line in soul.content().lines() {
+                                            tui_instance.add_message("system", line);
+                                        }
+                                        tui_instance.add_message("system", &format!("════════════════════"));
+                                        tui_instance.add_message("system", &format!("Soul file: {}", soul.path().display()));
+                                    }
+                                    crate::tui::InputResult::Command(ref cmd) if cmd == "identity" => {
+                                        tui_instance.add_message("system", "═══ Ao's Identity ═══");
+                                        for line in identity.content().lines() {
+                                            tui_instance.add_message("system", line);
+                                        }
+                                        tui_instance.add_message("system", &format!("════════════════════"));
+                                        tui_instance.add_message("system", &format!("Identity file: {}", identity.path().display()));
                                     }
                                     crate::tui::InputResult::Chat(text) => {
                                         tui_instance.add_message("user", &text);
