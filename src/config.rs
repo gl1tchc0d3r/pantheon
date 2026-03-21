@@ -14,12 +14,21 @@ pub struct Config {
     pub identity: IdentityConfig,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
 pub struct IdentityConfig {
     #[serde(default = "default_soul_path")]
     pub soul_path: String,
     #[serde(default = "default_identity_path")]
     pub identity_path: String,
+}
+
+impl Default for IdentityConfig {
+    fn default() -> Self {
+        Self {
+            soul_path: default_soul_path(),
+            identity_path: default_identity_path(),
+        }
+    }
 }
 
 fn default_soul_path() -> String {
@@ -93,5 +102,23 @@ impl Config {
     fn config_path() -> Result<PathBuf, ConfigError> {
         let cwd = env::current_dir()?;
         Ok(cwd.join(".ao").join("config.yaml"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_identity_config_defaults() {
+        let yaml = r#"
+provider:
+  api_key: "test"
+  model: "test"
+  base_url: "http://test"
+"#;
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.identity.soul_path, ".ao/SOUL.md");
+        assert_eq!(config.identity.identity_path, ".ao/IDENTITY.md");
     }
 }
