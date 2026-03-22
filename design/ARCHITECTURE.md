@@ -50,19 +50,37 @@ Each session takes a snapshot of your memories and profile when it begins. This 
 
 The prompt system is the heart of how Pantheon assembles context for its language model. Rather than sending only your current message, the system builds a comprehensive prompt containing multiple layers of information.
 
-First comes the identity block, which defines who Ao is and how it should behave. This comes from the Ao.md file in your configuration.
+First comes the Soul block, which defines Ao's core essence and unchanging character. This comes from the SOUL.md file and is created once, never modified. It establishes the fundamental traits that define who Ao is.
 
-Next, the system manages memory in layers rather than flooding the prompt. At session start, it injects a brief summary of recent conversation subjects and current context. This short-term memory is small, typically a few hundred tokens, and gives the assistant immediate awareness without overwhelming the prompt.
+Second comes the Identity block, which defines Ao's current behavior and guidelines. This comes from the IDENTITY.md file which is user-editable. Together, Soul and Identity define who Ao is and how it should behave in every interaction.
 
-When you want to pull in specific knowledge from your Library or past conversations, you use the `/remember` command. This explicitly injects relevant passages from your Library or memories into the current session context. The system searches for what you specified, extracts relevant passages, and adds them to the prompt. This gives you control over what the assistant knows at any moment rather than relying on automatic injection that could bloat the context.
+Next, the system adds previous session summaries for cross-session continuity. At session start, it loads brief summaries of recent conversations, giving the assistant awareness of ongoing topics without overwhelming the prompt.
 
-If you need specific recall during conversation, you can use the recall tool which searches your memories and Library on demand.
+Then the system adds conversation history from the current session. Messages accumulate during the session and are sent with each prompt to maintain context within the session.
 
-Then the system adds frozen snapshots of your memories and profile taken at the start of the session. These are marked as frozen because they should not change mid-session to maintain consistency.
+**Current Prompt Order:**
+```
+=== Ao's Soul ===
+{core essence}
+=== End Soul ===
 
-The prompt also includes an index of available skills, schemas describing what each tool can do, and any context files you have created such as .cursorrules. Finally, the system adds your conversation history, which may have been compressed if it has grown too long.
+=== Ao's Identity ===
+{behavior guidelines}
+=== End Identity ===
 
-The ordering matters for efficiency. By placing stable information first, the system allows language model providers to cache those sections, reducing the tokens sent on each request. The Library query happens near the beginning because it is unique to each interaction, but it is positioned after identity and skills so those cached elements come first.
+=== Previous Sessions Summary ===
+{session summaries}
+=== End Previous Sessions ===
+
+=== Current Session History ===
+{conversation history}
+=== End Current History ===
+
+User: {input}
+Ao:
+```
+
+The ordering matters for efficiency. Soul and Identity are stable and placed first so language model providers can cache those sections, reducing tokens sent on each request.
 
 ### The Agent Loop
 
@@ -89,6 +107,16 @@ Memory comes in two forms. Short-term memory lives only during a session, contai
 The prompt system uses memory at session start, loading short-term memory for continuity. When you use `/remember` or the recall tool, it searches long-term memory and injects relevant entries into your current context. This explicit approach gives you control over what the assistant knows rather than automatically injecting everything.
 
 The memory system also connects to other parts. When you create files in your Library, memory can note what you created. When Ao spawns workers, it can include relevant memories so workers have awareness of past experiences. The remember and recall tools let the language model store and retrieve memories during conversation, giving the assistant agency to record things it learns. In the background, the memory system periodically evaluates importance, consolidates entries, summarizes older memories, and prunes what is no longer needed. This keeps your memory store organized without flooding your prompts.
+
+### The Identity System
+
+Ao's identity is what makes it feel like a persistent entity rather than a generic LLM wrapper. The identity system provides two files that are loaded at startup and injected into every prompt.
+
+**Soul (SOUL.md)** is Ao's core essence—the unchanging character traits that define who Ao is. Created once and never modified, it establishes fundamental traits like curiosity, patience, and respect for user autonomy. Soul is sacred and permanent; it should never be changed even with confirmation.
+
+**Identity (IDENTITY.md)** defines Ao's current behavior and guidelines. This is user-editable, allowing you to customize how Ao approaches tasks, what context it has access to, and how it should respond in different situations. Since Identity is intentional rather than disposable, there is no in-app reset command—edit the file directly or use version control to manage changes.
+
+Both files are auto-created with sensible defaults on first run if they don't exist. The `/soul` and `/identity` commands let you view the current content of each file. Changes to these files take effect on the next restart.
 
 ### The Library System
 
@@ -168,6 +196,6 @@ You extend the system by adding tools as scripts in the tools directory, creatin
 
 ## Summary
 
-Pantheon achieves its goal of being a personal assistant that remembers, acts, and delivers consistent experience through the interaction of several key systems. The Library holds your personal knowledge and is searched when you explicitly ask via `/remember`. The session manager provides continuity and short-term context. The prompt system assembles context efficiently with user-controlled injection. The agent loop executes tasks and manages the flow. Workers provide parallel execution capacity when beneficial. The memory system stores experiences and enables recall when you request it. Tools and skills provide capabilities. The scheduler handles automation.
+Pantheon achieves its goal of being a personal assistant that remembers, acts, and delivers consistent experience through the interaction of several key systems. The Library holds your personal knowledge and is searched when you explicitly ask via `/remember`. The session manager provides continuity and short-term context. The identity system (Soul and Identity) defines who Ao is and how it behaves in every interaction. The prompt system assembles context efficiently with user-controlled injection. The agent loop executes tasks and manages the flow. Workers provide parallel execution capacity when beneficial. The memory system stores experiences and enables recall when you request it. Tools and skills provide capabilities. The scheduler handles automation.
 
 Together, these components create an experience where you control what context is in play, the system knows your files when you ask, remembers interactions you want preserved, and provides helpful assistance that is genuinely personal to you.
