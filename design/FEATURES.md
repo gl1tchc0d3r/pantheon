@@ -204,28 +204,47 @@ This ensures the Library enriches responses without overwhelming the prompt.
 
 **Purpose**: Construct prompts for Ao and workers with proper context assembly.
 
-### Components
+### Components (Implemented)
 
-| Component | Description | Cached? |
-|-----------|-------------|---------|
-| **Identity Block** | Ao's core identity and purpose | Yes |
-| **System Block** | Dynamic guidance per task | No |
-| **Library Context** | Relevant passages from user's knowledge base | Per-turn |
-| **Memory Snapshot** | Frozen at session start | At start |
-| **User Profile** | Frozen at session start | At start |
-| **Skills Index** | Available capabilities | Yes |
-| **Tool Schemas** | Tool definitions | Yes |
-| **Context Files** | .cursorrules, etc. | Yes |
-| **History** | Conversation (with compression) | No |
+| Component | Description | Status |
+|-----------|-------------|--------|
+| **Soul Block** | Ao's core essence (SOUL.md) | ✅ Implemented |
+| **Identity Block** | Ao's behavior guidelines (IDENTITY.md) | ✅ Implemented |
+| **Previous Sessions Summary** | Cross-session context | ✅ Implemented |
+| **Current Session History** | Conversation messages | ✅ Implemented |
 
-### Dependencies
+### Current Prompt Order
 
-- **F0: Library System** - Query Library and inject relevant content into prompt
-- **F5: Memory System** - Get memory context for recall
+```
+=== Ao's Soul ===         # Unchanging core essence
+=== End Soul ===
+
+=== Ao's Identity ===      # Editable behavior guidelines
+=== End Identity ===
+
+=== Previous Sessions Summary ===  # Cross-session continuity
+=== End Previous Sessions ===
+
+=== Current Session History ===    # Session messages
+=== End Current History ===
+
+User: {input}
+Ao:
+```
+
+### Planned Components (Future)
+
+| Component | Description |
+|-----------|-------------|
+| **Library Context** | Relevant passages from user's knowledge base |
+| **Memory Snapshot** | Frozen at session start |
+| **Skills Index** | Available capabilities |
+| **Tool Schemas** | Tool definitions |
+| **Context Files** | .cursorrules, etc. |
 
 ### Key Behaviors
 
-- **Prompt Caching**: Static blocks first to preserve provider-side cache
+- **Prompt Caching**: Static blocks (Soul/Identity) first to preserve provider-side cache
 - **Selective Injection**: Use layers (short-term auto, long-term via command)
 - **Frozen Snapshots**: Memory and profile taken at session start, not mutated
 - **Context Compression**: Summarize old history, preserve recent
@@ -244,14 +263,18 @@ This prevents prompt bloat while allowing users to pull relevant context when ne
 
 ### Features to Implement
 
-- [ ] Prompt assembly pipeline (layered construction)
-- [ ] Identity block loader from `.ao/ao.md`
+- [x] Soul block loader from `.ao/SOUL.md` (created once, never modified)
+- [x] Identity block loader from `.ao/IDENTITY.md` (user-editable)
+- [x] Previous session summaries for cross-session continuity
+- [x] Current session history
 - [ ] Context file loader (.cursorrules, etc.)
 - [ ] Library query integration (search Library, extract passages)
 - [ ] Prompt injection: "Relevant from your Library: {citations}\n{passages}"
 - [ ] Memory snapshot at session start
 - [ ] History compression (summarize old, preserve recent)
 - [ ] Token estimation and limit handling
+- [ ] Skills Index (available capabilities)
+- [ ] Tool Schemas (tool definitions)
 - [ ] Ordering: Library context after Identity/Skills/Tools (before History)
 
 ---
@@ -614,19 +637,26 @@ Commands are handled by the TUI - this is part of F9 (TUI), not a separate featu
 
 **Purpose**: External context loaded into prompts.
 
-### Files
+### Files (Implemented)
+
+| File | Description | Status |
+|------|-------------|--------|
+| `.ao/SOUL.md` | Ao's core essence (unchanging) | ✅ Implemented |
+| `.ao/IDENTITY.md` | Ao's behavior guidelines | ✅ Implemented |
+
+### Files (Planned)
 
 | File | Description |
 |------|-------------|
-| `.ao/ao.md` | Ao's identity |
 | `.ao/skills/*.md` | Skill definitions |
 | `.cursorrules` | Cursor IDE rules |
 | `.cursor/rules/*.mdc` | Additional context |
 
 ### Features to Implement
 
-- [ ] File discovery and loading
-- [ ] Markdown + YAML parsing
+- [x] Soul file discovery and loading from `.ao/SOUL.md`
+- [x] Identity file discovery and loading from `.ao/IDENTITY.md`
+- [ ] Markdown + YAML parsing for context files
 - [ ] Cached vs dynamic loading
 - [ ] Template variable substitution ({agent_list}, {tool_descriptions}, etc.)
 
