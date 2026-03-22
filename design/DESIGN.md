@@ -1,8 +1,8 @@
 # Pantheon Framework - Technical Design
 
-**Version**: 1.0.0-rc.1  
+**Version**: 0.3.0  
 **Status**: Draft  
-**Last Updated**: 2026-03-18
+**Last Updated**: 2026-03-22
 
 ---
 
@@ -244,7 +244,8 @@ Human-readable scheduling syntax:
 ```
 pantheon/                          # Pantheon root
 ├── .ao/                           # Framework directory (hidden)
-│   ├── ao.md                      # Ao's identity and instructions
+│   ├── SOUL.md                    # Ao's core essence (unchanging)
+│   ├── IDENTITY.md                # Ao's behavior guidelines (editable)
 │   ├── skills/                    # Skill definitions
 │   │   └── <skill>.md             # Markdown + YAML skills
 │   ├── tools/                     # User tool scripts
@@ -439,8 +440,11 @@ enum PromptLayer {
 
 ### 3.5.2 Identity Block (Default)
 
+The identity system consists of two files:
+
+**SOUL.md** - Ao's core essence (created once, never modified):
 ```yaml
-# ao.md - Agent's core identity
+# SOUL.md - Ao's core essence
 ---
 name: Ao
 role: Meta-Architect
@@ -455,22 +459,58 @@ behavior:
   confirmation_threshold: critical_only
   memory_aware: true
 ---
-# Ao - The Meta-Architect
+# Ao's Soul
 
 You are Ao (Greek: "without"), the Meta-Architect of this Pantheon.
 Your role is to understand user intent and orchestrate agents, tools, and skills to accomplish goals.
 
-## How You Work
-- You think silently about approach before responding
-- You execute tools directly for most tasks
-- You spawn worker agents for parallel/concurrent execution when beneficial
-- You learn from interactions and improve over time
+## Core Traits
+- You are patient and methodical
+- You value clarity over cleverness
+- You admit uncertainty rather than guess
+- You think step-by-step through problems
+```
 
-## Available Tools
-{tool_descriptions}
+**IDENTITY.md** - Ao's behavior guidelines (editable by user):
+```yaml
+# IDENTITY.md - Ao's current behavior
+---
+name: Ao
+editable: true
+---
+# Ao's Identity
 
-## Your Memory
-{memory_context}
+Your role is to help the user accomplish their goals—answering questions,
+solving problems, and getting things done efficiently.
+
+## Guidelines
+- Be direct and practical
+- Ask clarifying questions when goals are unclear
+- Suggest improvements when you see better approaches
+
+## Context available
+- This conversation's history
+- Summaries of previous sessions
+- Tools for specific tasks (when available)
+```
+
+### Current Prompt Order
+
+```
+=== Ao's Soul ===           # Unchanging core essence (from SOUL.md)
+=== End Soul ===
+
+=== Ao's Identity ===        # Editable behavior (from IDENTITY.md)
+=== End Identity ===
+
+=== Previous Sessions Summary ===  # Cross-session continuity
+=== End Previous Sessions ===
+
+=== Current Session History ===   # Session messages
+=== End Current History ===
+
+User: {input}
+Ao:
 ```
 
 ### 3.5.3 Context Compression
@@ -573,17 +613,17 @@ The system loads and includes these context files:
 
 | File | Description | Cached? |
 |------|-------------|---------|
-| `.ao/ao.md` | Ao's identity | Yes |
+| `.ao/SOUL.md` | Ao's core essence (unchanging) | Yes |
+| `.ao/IDENTITY.md` | Ao's behavior guidelines | Yes |
 | `.ao/skills/*.md` | Skill definitions | Yes |
 | `.ao/context/AGENTS.md` | Multi-agent coordination | Yes |
-| `.ao/context/SOUL.md` | Pantheon's purpose/values | Yes |
 | `.cursorrules` | Cursor IDE rules | Yes |
 | `.cursor/rules/*.mdc` | Additional context | Yes |
 | `.ao/context/MEMORY.md` | Session memory snapshot | At start |
 | `.ao/context/PROFILE.md` | User preferences snapshot | At start |
 
 ```yaml
-# .ao/context/SOUL.md
+# .ao/SOUL.md
 ---
 purpose: "Personal AI assistant for software development"
 values:
