@@ -118,8 +118,8 @@ Simple, but it proves the core loop works.
 ## Phase 2: Context and History
 
 **Version**: 0.2.0  
-**Feature Document**: `0.2.0_FEATURE_CONTEXT.md` (planned)  
-**Status**: Not Started
+**Feature Document**: `0.2.0_FEATURE_CONTEXT.md`  
+**Status**: Completed
 
 **Goal**: The assistant remembers what you said in this session.
 
@@ -154,36 +154,39 @@ Simple, but it proves the core loop works.
 ## Phase 3: Ao's Identity
 
 **Version**: 0.3.0  
-**Feature Document**: `0.3.0_FEATURE_IDENTITY.md` (planned)  
-**Status**: Not Started
+**Feature Document**: `0.3.0_FEATURE_IDENTITY.md`  
+**Status**: Completed
 
 **Goal**: Ao has a defined identity that shapes responses.
 
 **What this looks like**:
-- Ao.md defines who Ao is
-- Identity injected into every prompt
-- You can edit Ao's identity
+- SOUL.md defines Ao's core essence (unchanging)
+- IDENTITY.md defines Ao's behavior guidelines (editable)
+- Soul and Identity injected into every prompt
+- `/soul` and `/identity` commands to view current content
 
 ### Phase 3 Scope
 
 | Feature | What's Included |
 |---------|-----------------|
-| **Identity** | Load Ao.md from config |
-| **Prompt** | Prepend identity to every prompt |
-| **Editable** | You can modify Ao.md |
+| **Soul** | Load SOUL.md from config (created once, never modified) |
+| **Identity** | Load IDENTITY.md from config (user-editable) |
+| **Prompt** | Prepend Soul, then Identity to every prompt |
+| **Commands** | `/soul` and `/identity` to view content |
 
 ### Phase 3 Implementation Steps
 
-1. **Load Ao.md**
-   - Read from `.ao/ao.md`
-   - Parse markdown (or just use as-is)
+1. **Load Soul and Identity**
+   - Read from `.ao/SOUL.md` and `.ao/IDENTITY.md`
+   - Auto-create with defaults if not present
 
 2. **Prompt assembly**
-   - Identity block first in prompt
-   - Followed by conversation history
+   - Soul block first in prompt
+   - Identity block second
+   - Followed by session context and history
 
 3. **Test different identities**
-   - Easy to change how Ao behaves
+   - Easy to change how Ao behaves by editing IDENTITY.md
 
 ---
 
