@@ -6,10 +6,10 @@ A personal AI assistant framework built in Rust with persistent conversation his
 
 ## Status
 
-**Current Version**: 0.2.0  
+**Current Version**: 0.3.0  
 **Status**: Active Development  
-**Current Phase**: Session Management + Context (Completed)  
-**Next Phase**: 0.3.0 - Ao's Identity
+**Current Phase**: Ao's Identity (Completed)  
+**Next Phase**: 0.4.0 - Basic Tools
 
 ---
 
@@ -37,6 +37,9 @@ cargo build --release
 - **Session Summarization**: Automatic LLM-generated summaries when sessions end
 - **Token Budget Control**: Configurable `max_history_tokens` for controlling context size
 - **TUI Interface**: Colorful terminal UI with scrolling support
+- **Ao's Soul**: Core identity essence, created once and never modified
+- **Ao's Identity**: Editable behavior guidelines, loaded on startup
+- **Identity Commands**: View soul and identity with `/soul` and `/identity` commands
 
 ---
 
@@ -50,13 +53,16 @@ pantheon/
 │   ├── chat.rs            # Chat loop and session management
 │   ├── agent.rs           # LLM prompt building
 │   ├── config.rs          # Configuration loading
+│   ├── identity.rs        # Soul and Identity management
 │   ├── tui.rs             # Terminal UI rendering
 │   ├── provider/          # LLM provider implementations
 │   └── session/           # Session management module
 ├── design/                 # Design documents
 ├── .ao/                    # Runtime configuration
 │   ├── config.yaml        # User configuration
-│   └── sessions.db        # SQLite database (auto-created)
+│   ├── sessions.db        # SQLite database (auto-created)
+│   ├── SOUL.md            # Ao's core essence (auto-created)
+│   └── IDENTITY.md        # Ao's behavior guidelines (auto-created)
 └── README.md              # This file
 ```
 
@@ -74,7 +80,8 @@ pantheon/
 
 Each version has a detailed feature document:
 - [0.1.0_FEATURE_MVP.md](design/0.1.0_FEATURE_MVP.md) - MVP: Basic Chat + LLM
-- [0.2.0_FEATURE_CONTEXT.md](design/0.2.0_FEATURE_CONTEXT.md) - **Current**: Session Management + Context
+- [0.2.0_FEATURE_CONTEXT.md](design/0.2.0_FEATURE_CONTEXT.md) - Session Management + Context
+- [0.3.0_FEATURE_IDENTITY.md](design/0.3.0_FEATURE_IDENTITY.md) - **Current**: Ao's Identity
 
 Use [FEATURE_TEMPLATE.md](design/FEATURE_TEMPLATE.md) for creating new feature documents.
 
@@ -85,8 +92,8 @@ Use [FEATURE_TEMPLATE.md](design/FEATURE_TEMPLATE.md) for creating new feature d
 | Version | Feature | Feature Document | Status |
 |---------|---------|------------------|--------|
 | **0.1.0** | MVP: Chat + LLM | [0.1.0_FEATURE_MVP.md](design/0.1.0_FEATURE_MVP.md) | Completed |
-| **0.2.0** | History + Context | [0.2.0_FEATURE_CONTEXT.md](design/0.2.0_FEATURE_CONTEXT.md) | **Completed** |
-| 0.3.0 | Ao's Identity | [0.3.0_FEATURE_IDENTITY.md](design/0.3.0_FEATURE_IDENTITY.md) | **Planned** |
+| **0.2.0** | History + Context | [0.2.0_FEATURE_CONTEXT.md](design/0.2.0_FEATURE_CONTEXT.md) | Completed |
+| **0.3.0** | Ao's Identity | [0.3.0_FEATURE_IDENTITY.md](design/0.3.0_FEATURE_IDENTITY.md) | **Completed** |
 | 0.4.0 | Basic Tools | [0.4.0_FEATURE_TOOLS.md](design/0.4.0_FEATURE_TOOLS.md) | Not Started |
 | 0.5.0 | Memory System | [0.5.0_FEATURE_MEMORY.md](design/0.5.0_FEATURE_MEMORY.md) | Not Started |
 | 0.6.0 | Library System | [0.6.0_FEATURE_LIBRARY.md](design/0.6.0_FEATURE_LIBRARY.md) | Not Started |
@@ -115,6 +122,8 @@ The `ao` CLI provides the following commands:
 | `/help` | Show available commands |
 | `/clear` | Clear current conversation history |
 | `/status` | Show session info and previous summaries |
+| `/soul` | View Ao's core soul |
+| `/identity` | View Ao's current identity |
 
 ---
 
@@ -133,6 +142,10 @@ session:
   db_path: ".ao/sessions.db"    # SQLite database path
   auto_resume: true             # Resume last session on startup
   summarize_on_close: true      # Generate summary when session ends
+
+identity:
+  soul_path: ".ao/SOUL.md"       # Path to Ao's soul file
+  identity_path: ".ao/IDENTITY.md" # Path to Ao's identity file
 ```
 
 ### Configuration Options
@@ -143,6 +156,8 @@ session:
 | `db_path` | String | `.ao/sessions.db` | SQLite database path |
 | `auto_resume` | bool | true | Resume last session on startup |
 | `summarize_on_close` | bool | true | Generate summary when session ends |
+| `soul_path` | String | `.ao/SOUL.md` | Path to Ao's soul file |
+| `identity_path` | String | `.ao/IDENTITY.md` | Path to Ao's identity file |
 
 ---
 
@@ -157,6 +172,15 @@ session:
 ### Prompt Structure
 
 ```
+=== Ao's Soul ===
+Your essence is curiosity and a genuine desire to help.
+...
+=== End Soul ===
+
+=== Ao's Identity ===
+Your role is to help the user accomplish their goals...
+=== End Identity ===
+
 === Previous Sessions Summary ===
 Session 2024-01-14: Discussed Rust async programming...
 === End Previous Sessions ===
